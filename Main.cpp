@@ -1,9 +1,8 @@
 
-
 #include <iostream>
 #include <fstream>
-#include <string> 
-#include <wchar.h>
+#include <string>
+#include <algorithm> // For transform() function used in case-insensitive search
 
 using namespace std;
 
@@ -18,11 +17,14 @@ bool loginUser();
 void registerUser();
 int readUserFile(string usernames[], string passwords[]);
 void writeUserFile(string usernames[], string passwords[], int userCount);
+void showMainMenu();
 void loadCourses();
 void saveCourses();
 void addCourse();
 void deleteCourse();
 void listCourses();
+void searchCourse();    
+void updateCourse();    
 
 // Global variable to track login status
 bool isLoggedIn = false;
@@ -31,10 +33,10 @@ string titles[MAX_COURSES];
 int creditHours[MAX_COURSES];
 int courseCount = 0; // Tracks how many courses are currently loaded
 
-
 int main() {
+    loadCourses(); // Load courses when program starts
+    
     int choice;
-
     cout << "*** Course Management System ***" << endl;
 
     do {
@@ -48,7 +50,7 @@ int main() {
             case 1:
                 isLoggedIn = loginUser();
                 if (isLoggedIn) {
-                    showMainMenu(); // This will be built by others
+                    showMainMenu();
                 }
                 break;
             case 2:
@@ -294,20 +296,152 @@ void deleteCourse() {
     // Save the updated arrays to file
     saveCourses();
     cout << "Course deleted successfully!" << endl;
-}int main() {
-    loadCourses(); // <- ADD THIS LINE to load courses on startup
+}
 
-    int choice;
-    cout << "*** Course Management System ***" << endl;
-    // ... rest of existing code
-}void showMainMenu() {
+
+// Function to convert string to lowercase for case-insensitive search
+string toLower(string str) {
+    transform(str.begin(), str.end(), str.begin(), ::tolower);
+    return str;
+}
+
+// Function to search for courses
+void searchCourse() {
+    if (courseCount == 0) {
+        cout << "No courses available to search." << endl;
+        return;
+    }
+
+    int searchChoice;
+    cout << "\n--- Search Courses ---" << endl;
+    cout << "1. Search by Course ID" << endl;
+    cout << "2. Search by Title (partial match)" << endl;
+    cout << "Enter your choice: ";
+    cin >> searchChoice;
+    cin.ignore(); // Clear the input buffer
+
+    if (searchChoice == 1) {
+        // Search by Course ID
+        string searchId;
+        cout << "Enter Course ID to search: ";
+        getline(cin, searchId);
+
+        bool found = false;
+        cout << "\nSearch Results:" << endl;
+        cout << "ID\tTitle\t\tHours" << endl;
+        cout << "--------------------------------" << endl;
+        
+        for (int i = 0; i < courseCount; i++) {
+            if (courseIds[i] == searchId) {
+                cout << courseIds[i] << "\t" << titles[i] << "\t\t" << creditHours[i] << endl;
+                found = true;
+                break; // IDs are unique, so we can break after finding one
+            }
+        }
+        
+        if (!found) {
+            cout << "No course found with ID: " << searchId << endl;
+        }
+
+    } else if (searchChoice == 2) {
+        // Search by Title (partial match, case-insensitive)
+        string searchTitle;
+        cout << "Enter title or part of title to search: ";
+        getline(cin, searchTitle);
+
+        string searchTitleLower = toLower(searchTitle);
+        bool found = false;
+        
+        cout << "\nSearch Results:" << endl;
+        cout << "ID\tTitle\t\tHours" << endl;
+        cout << "--------------------------------" << endl;
+        
+        for (int i = 0; i < courseCount; i++) {
+            string titleLower = toLower(titles[i]);
+            if (titleLower.find(searchTitleLower) != string::npos) {
+                cout << courseIds[i] << "\t" << titles[i] << "\t\t" << creditHours[i] << endl;
+                found = true;
+            }
+        }
+        
+        if (!found) {
+            cout << "No courses found containing: " << searchTitle << endl;
+        }
+
+    } else {
+        cout << "Invalid search choice!" << endl;
+    }
+}
+
+// Function to update a course
+void updateCourse() {
+    if (courseCount == 0) {
+        cout << "No courses available to update." << endl;
+        return;
+    }
+
+    string targetId;
+    cout << "Enter the Course ID to update: ";
+    cin.ignore();
+    getline(cin, targetId);
+
+    int foundIndex = -1;
+    // Search for the course
+    for (int i = 0; i < courseCount; i++) {
+        if (courseIds[i] == targetId) {
+            foundIndex = i;
+            break;
+        }
+    }
+
+    if (foundIndex == -1) {
+        cout << "Error: Course with ID '" << targetId << "' not found." << endl;
+        return;
+    }
+
+    // Display current course information
+    cout << "\nCurrent Course Details:" << endl;
+    cout << "ID: " << courseIds[foundIndex] << endl;
+    cout << "Title: " << titles[foundIndex] << endl;
+    cout << "Credit Hours: " << creditHours[foundIndex] << endl;
+
+    // Get new details
+    string newTitle;
+    int newHours;
+
+    cout << "\nEnter new title (or press Enter to keep current): ";
+    getline(cin, newTitle);
+    
+    cout << "Enter new credit hours (1-6, or 0 to keep current): ";
+    cin >> newHours;
+
+    // Update fields if new values provided
+    if (!newTitle.empty()) {
+        titles[foundIndex] = newTitle;
+    }
+    
+    if (newHours != 0) {
+        if (newHours < 1 || newHours > 6) {
+            cout << "Error: Credit hours must be between 1 and 6. Update cancelled." << endl;
+            return;
+        }
+        creditHours[foundIndex] = newHours;
+    }
+
+    // Save changes to file
+    saveCourses();
+    cout << "Course updated successfully!" << endl;
+}
+
+// Main menu function
+void showMainMenu() {
     int choice;
     do {
         cout << "\n--- MAIN MENU ---" << endl;
         cout << "1. Add Course" << endl;
         cout << "2. Delete Course" << endl;
-        cout << "3. Search Course" << endl; // Placeholder for Member C
-        cout << "4. Update Course" << endl; // Placeholder for Member C
+        cout << "3. Search Course" << endl; 
+        cout << "4. Update Course" << endl; 
         cout << "5. List All Courses" << endl;
         cout << "6. Logout" << endl;
         cout << "Enter your choice: ";
@@ -321,10 +455,10 @@ void deleteCourse() {
                 deleteCourse();
                 break;
             case 3:
-                cout << "Search function coming soon! (Member C)" << endl;
+                searchCourse(); 
                 break;
             case 4:
-                cout << "Update function coming soon! (Member C)" << endl;
+                updateCourse();
                 break;
             case 5:
                 listCourses();
